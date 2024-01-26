@@ -8,7 +8,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from util.cloud_run_upscale import cloud_run_upscale, get_resources_limits
-from util.system_metric import get_metric
+from util.system_metric import get_all_metrics, get_metric
 
 load_dotenv()
 app = Flask(__name__)
@@ -156,6 +156,38 @@ def get_system_metric_api():
     except Exception as e:
         print(f"An error occurred while getting the metric '{metric}':\n{e}")
         return jsonify(f"An error occurred while getting the metric '{metric}':\n{e}"), 500
+
+
+@app.route("/api/all_system_metric", methods=["POST"])
+@jwt_required()
+async def get_all_system_metric_api():
+    """
+    Retrieves specified metrics for a Google Cloud Run service over a specified time range.
+
+    This function queries Google Cloud Monitoring for metrics related to a Cloud Run service. It supports various
+    metrics like request counts, latencies, instance counts, CPU and memory utilization, etc. The time range for
+    the query can be specified in days, hours, and minutes.
+
+    Args:
+        metric (str): The specific metric to retrieve. Valid options include 'request_count', 'request_latencies',
+                      'instance_count', 'CPU_utilization', 'memory_utilization', 'startup_latency'.
+        days (int): The number of days to go back in time for the metric data.
+        hours (int): The number of hours to go back in time for the metric data.
+        minutes (int): The number of minutes to go back in time for the metric data.
+
+    Returns:
+        str: The JSON representation of the metric data. If an error occurs, the JSON representation of the error
+             message is returned instead.
+    """
+    request_body: dict[str, str] = request.json  # type: ignore
+    days = int(request_body.get("days", 0))
+    hours = int(request_body.get("hours", 0))
+    minutes = int(request_body.get("minutes", 0))
+    try:
+        return await get_all_metrics(days, hours, minutes), 200
+    except Exception as e:
+        print(f"An error occurred while getting the metrics:\n{e}")
+        return jsonify(f"An error occurred while getting the metrics:\n{e}"), 500
 
 
 @app.route("/api/cloud_run_upscale", methods=["POST"])

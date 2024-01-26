@@ -121,3 +121,30 @@ async def get_metric_async(metric: str, days: int = 0, hours: int = 0, minutes: 
     if isinstance(result, pd.DataFrame):
         return result
     raise Exception(f"Unexpected result type: {type(result)}")
+
+
+async def get_all_metrics(days: int = 0, hours: int = 0, minutes: int = 0) -> dict[str, str]:
+    metric_list = [
+        "request_count",
+        "request_latencies",
+        "instance_count",
+        "CPU_utilization",
+        "memory_utilization",
+        "startup_latency",
+    ]
+
+    results = await asyncio.gather(
+        *(get_metric_async(metric, days, hours, minutes) for metric in metric_list),
+        return_exceptions=True,
+    )
+
+    response = {}
+    for metric, result in zip(metric_list, results):
+        if isinstance(result, Exception):
+            response[metric] = f"An error occurred while getting the metric '{metric}':\n{result}"
+        elif isinstance(result, pd.DataFrame):
+            response[metric] = result.to_json()
+        else:
+            response[metric] = f"Unexpected result type: {type(result)}"
+
+    return response
