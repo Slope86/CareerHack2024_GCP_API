@@ -184,7 +184,7 @@ async def get_all_system_metric_api():
     hours = int(request_body.get("hours", 0))
     minutes = int(request_body.get("minutes", 0))
     try:
-        return await get_all_metrics(days, hours, minutes), 200
+        return jsonify(await get_all_metrics(days, hours, minutes)), 200
     except Exception as e:
         print(f"An error occurred while getting the metrics:\n{e}")
         return jsonify(f"An error occurred while getting the metrics:\n{e}"), 500

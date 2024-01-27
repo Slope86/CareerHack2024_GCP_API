@@ -77,10 +77,10 @@ def get_metric(metric: str, days: int = 0, hours: int = 0, minutes: int = 0) -> 
 
     result: pd.DataFrame = query.as_dataframe(label=metrics_info[metric]["label"])
 
-    return _normalize_dataframe(result)
+    return _normalize_dataframe(result, metric)
 
 
-def _normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+def _normalize_dataframe(df: pd.DataFrame, metric: str) -> pd.DataFrame:
     """
     Normalizes and aggregates a DataFrame with potentially duplicated column names.
 
@@ -109,7 +109,17 @@ def _normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     # Transpose the DataFrame, group by the column names and sum the values, and then transpose back
     # This approach is used to handle the deprecation warning for DataFrame.groupby with axis=1
-    df = df.T.groupby(level=0).sum().T
+    match metric:
+        case "request_count" | "request_latencies":
+            df = df.T.groupby(level=0).sum().T
+        case "CPU_utilization" | "memory_utilization":
+            df = df.T.groupby(level=0).max().T
+            # convert to percentage
+            df = df * 100
+        case "startup_latency" | "instance_count":
+            df = df.T.groupby(level=0).max().T
+        case _:
+            df = df.T.groupby(level=0).sum().T
     return df
 
 
